@@ -1,4 +1,11 @@
+builds/
+dist/
+*.elf
+*.bin
+*.exe
 __pycache__/
 *.pyc
 *.pyo
+captures/
+reports/
 .DS_Store
