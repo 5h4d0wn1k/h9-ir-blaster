@@ -3,152 +3,79 @@
 > or hold explicit written authorization to assess**. Unauthorized use is
 > prohibited and may be illegal. Read [ETHICS.md](ETHICS.md) and
 > [SCOPE.md](SCOPE.md) before use. Use at your own risk; **AS IS**, no warranty.
+
 # H9 — IR Blaster + Replay
 
-IR signal capture, protocol decode, and remote control replay with ESP32.
+An ESP32-powered **infrared (IR) security tester**: capture remote-control
+signals, auto-detect **NEC, Samsung, and RC5** protocols, decode address/command
+fields, and replay codes against **your own** lab hardware.
 
-## Overview
+[![License](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
+[![Stars](https://img.shields.io/github/stars/5h4d0wn1k/h9-ir-blaster)](https://github.com/5h4d0wn1k/h9-ir-blaster)
+[![Last commit](https://img.shields.io/github/last-commit/5h4d0wn1k/h9-ir-blaster)](https://github.com/5h4d0wn1k/h9-ir-blaster)
+[![Issues](https://img.shields.io/github/issues/5h4d0wn1k/h9-ir-blaster)](https://github.com/5h4d0wn1k/h9-ir-blaster)
 
-This project implements a standalone IR blaster that:
-- Captures IR signals via interrupt-driven TSOP receiver
-- Auto-detects NEC, Samsung, and RC5 protocols
-- Decodes address/command fields with checksum verification
-- Replays captured signals with configurable repeat
-- Includes built-in common remote control codes
-- Serial command interface for interactive use
+## Why H9
 
-## Hardware
+Infrared remotes still control TVs, HVAC, gates, and drones — and they speak a
+plaintext protocol that costs a few dollars to intercept. H9 is a **hardware
+security** study tool: it captures IR timings interrupt-driven, decodes the
+three dominant consumer protocols, and replays codes through an IR LED. The
+point is understanding **RF/infrared signal replay** for your own lab
+experiments and home-automation tinkering. All targets must be devices **you
+own or hold explicit authorization to control**; replaying against other
+people's devices may violate state and federal law.
 
-| Component | Connection | Role |
-|-----------|------------|------|
-| ESP32 NodeMCU | Main board | Signal processing, serial interface |
-| TSOP38238 | D4 (GPIO4) | IR receiver (38 kHz) |
-| IR LED | D2 (GPIO2) | IR transmitter (via NPN transistor) |
+## Features
 
-## Wiring
+- **Signal capture** — interrupt-driven TSOP38238 receiver with timing capture
+- **Protocol auto-detection** — NEC (32-bit), Samsung (32-bit), RC5 (Manchester, 14-bit)
+- **Decode with checksum** — address/command fields plus NEC checksum verification
+- **Replay** — configurable repeat count; replay last capture or a raw hex code
+- **Built-in remote codes** — common TV/AC presets via the `codes` command
+- **Serial command interface** — `capture`, `replay`, `send`, `codes`, `info`
+- **Host helper** — offline decode analysis of hex code files (`host/h9_cli.py`)
 
-```
-TSOP38238 (IR Receiver):
-  DATA → D4  (GPIO4)
-  VCC  → 3.3V
-  GND  → GND
-
-IR LED (via NPN transistor, e.g. 2N2222):
-  ESP32 D2 (GPIO2) → 1kΩ → Base
-  Collector → IR LED cathode
-  IR LED anode → 5V via 100Ω resistor
-  Emitter → GND
-```
-
-## Serial Commands
-
-| Command | Description |
-|---------|-------------|
-| `capture` | Record IR signal from remote |
-| `replay` | Replay last captured signal |
-| `replay <hex>` | Replay specific code |
-| `send <hex> [proto]` | Send code via protocol |
-| `codes` | Show built-in remote codes |
-| `info` | Show stored signal info |
-
-## Supported Protocols
-
-| Protocol | Bits | Header | Use |
-|----------|------|--------|-----|
-| NEC | 32 | 9000/4500 µs | Most universal remotes |
-| Samsung | 32 | 4500/4500 µs | Samsung TVs, ACs |
-| RC5 | 14 | Manchester | Philips, older remotes |
-
-## Serial Output
-
-```
-=== H9 — IR Blaster + Replay ===
-[+] Captured 68 samples
-[+] Protocol:  NEC
-[+] Raw code: 0x00FF40BF
-[+] Address:  0x00
-[+] Command:  0xBF
-[+] NEC checksum OK
-```
-
-## Build & Flash
+## Quickstart
 
 ```bash
-# Using Arduino CLI
-arduino-cli compile --fqbn esp32:esp32:esp32 firmware/h9_ir_blaster.ino
-arduino-cli upload --fqbn esp32:esp32:esp32 --port /dev/ttyUSB0 firmware/h9_ir_blaster.ino
+# ESP32 firmware (Arduino CLI)
+arduino-cli compile --fqbn esp32:esp32:esp32 firmware/h9_ir_blaster
+arduino-cli upload --fqbn esp32:esp32:esp32 --port /dev/ttyUSB0 firmware/h9_ir_blaster
+
+# Host-side offline decode analysis
+python3 host/h9_cli.py --demo
+python3 host/h9_cli.py --file fixtures/ir_timings.log
+
+# Tests
+python3 -m unittest discover -s tests
 ```
 
-## Legal Disclaimer
+Serial commands: `capture` · `replay [hex]` · `send <hex> [proto]` · `codes` · `info`.
 
-## IMPORTANT: Read before use.
+## Examples
 
-This project is provided for **educational and authorized security testing purposes only**.
+- `fixtures/ir_timings.log` — sample infrared hex-code captures for offline decode demos
 
-### Authorization Requirements
-- You MUST have explicit written permission from the device/system owner before using this tool
-- Unauthorized control of electronic devices is illegal under federal and state laws
-- This tool should ONLY be used on devices you own or have written authorization to test
+## Project structure
 
-### Legal Framework
-- **Computer Fraud and Abuse Act (CFAA)**: Unauthorized access to computer systems is a federal crime
-- **Wiretap Act (18 U.S.C. § 2511)**: Interception of electronic communications without consent is illegal
-- **State Laws**: Many states have additional computer crime and wiretapping statutes
-- **FCC Regulations**: IR transmission may be subject to radio frequency regulations
+- `firmware/h9_ir_blaster/` — ESP32 sketch (see `firmware/README.md`)
+- `host/` — Python helpers (`h9_cli.py`, `hw_common.py`)
+- `fixtures/` — sample captures
+- `docs/`, `tests/` — architecture notes and unit tests
 
-### Acceptable Use
-- Testing security of your own IR-controlled devices
-- Authorized penetration testing with written scope
-- Academic research in controlled lab environments
-- Security education and training
-- Home automation development
+## Documentation
 
-### Prohibited Use
-- Controlling devices you don't own without authorization
-- Jamming or interfering with legitimate IR communications
-- Any activity that violates applicable laws or regulations
-- Commercial use without proper licensing
+- [firmware/README.md](firmware/README.md) — hardware wiring, build, and flash
 
-### No Warranty
-This software is provided "AS IS" without warranty of any kind. The author is not responsible for any misuse or damage caused by this software.
+## Contributing
 
-### Responsible Disclosure
-If you discover vulnerabilities using this tool, follow responsible disclosure practices:
-1. Report to the vendor/owner privately
-2. Allow reasonable time for remediation
-3. Do not exploit beyond proof of concept
-
-## Live Lab Test Plan
-
-Run ONLY on an isolated, authorized own-lab bench against devices, networks,
-and spectrum **you own**. No third-party callers, bystanders, or spectrum users
-may be within range of any test transmission.
-
-1. **Isolate** - Put the DUT in a shielded/Faraday enclosure or a room with no
-   third-party devices in range. Use attenuators on any transmit path.
-2. **Own devices only** - Every target (AP, remote, tag, GPS module, drone FC,
-   receiver) must be your own hardware.
-3. **Lowest power, shortest duration** - Start at minimum TX power / duty cycle
-   and use only the seconds needed.
-4. **Record** - Save before/after logs to `reports/` (git-ignored). Never
-   capture or store third-party traffic.
-5. **Cleanup** - Restore placeholder SSIDs (`lab-*`), MACs (`00:11:22:33:44:55`),
-   example.com / RFC5737 addresses, and clear any captured data from the device.
-
-> Jammer / spoofer / replay projects are **proofs for study and simulation**
-> only. They refuse live interference scenarios: a live bench trigger requires
-> the `LAB_*` allowlist environment variable AND explicit `--yes` confirmation,
-> and even then only against your own hardware in a shielded bench.
-
-## Metrics
-
-| Metric | Target | Where |
-|---|---|---|
-| Firmware compile | `arduino-cli compile --fqbn esp32:esp32:esp32 firmware/h9_ir_blaster` PASS | CI/local |
-| Host helper | `python3 host/h9_cli.py --demo` exits 0 (offline) | host/ |
-| Unit tests | `python3 -m unittest discover -s tests` passes | tests/ |
-| py_compile | every `host/*.py` compiles clean | CI/local |
+See [CONTRIBUTING.md](CONTRIBUTING.md) and [CODE_OF_CONDUCT.md](CODE_OF_CONDUCT.md).
 
 ## License
 
-MIT
+MIT — see [LICENSE](LICENSE).
+
+## Legal
+
+- [ETHICS.md](ETHICS.md) · [SCOPE.md](SCOPE.md) · [SECURITY.md](SECURITY.md)
